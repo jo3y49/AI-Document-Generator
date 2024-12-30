@@ -1,14 +1,16 @@
+import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from docx import Document
-import json
-import os
-from PyPDF2 import PdfReader
 
-# Constants
-EXAMPLE_DOCS_FILE = os.path.join(os.path.dirname(__file__), "example_docs.json")
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
-DEFAULT_DOWNLOAD_DIR = os.path.join(os.path.dirname(__file__), "generated_docs")
+from docx import Document
+from PyPDF2 import PdfReader
+import json
+
+# File Paths
+DATA_FILE_PATH = os.path.join(os.path.dirname(__file__), "program_data")
+EXAMPLE_DOCS_FILE = os.path.join(DATA_FILE_PATH, "example_docs.json")
+SETTINGS_FILE = os.path.join(DATA_FILE_PATH, "settings.json")
+DEFAULT_DOWNLOAD_DIR = os.path.join(DATA_FILE_PATH, "generated_docs")
 
 # Global variable dictionaries to store uploaded document text
 example_doc_text = {}
@@ -47,14 +49,56 @@ def load_example_docs():
         with open(EXAMPLE_DOCS_FILE, "r") as f:
             example_doc_text = json.load(f)
 
-def delete_example_docs():
-    """Delete example documents from file."""
-    global example_doc_text
+def show_uploaded_files():
+    """Show a popup with the filenames of all uploaded documents."""
+    global example_doc_text, information_doc_text
+    popup = tk.Toplevel(root)
+    popup.title("Uploaded Files")
+
+    def delete_selected_from_listbox(listbox, doc_dict):
+        """Delete the selected file(s) from the provided listbox and dictionary."""
+        selected_items = listbox.curselection()
+        for i in reversed(selected_items):  # Reverse to prevent index shifting issues
+            filename = listbox.get(i)
+            del doc_dict[filename]  # Remove from the dictionary
+            listbox.delete(i)      # Remove from the listbox
+        save_example_docs()
+
+    # Example Documents
+    tk.Label(popup, text="Example Documents:").pack(anchor="center", padx=10, pady=5)
+    example_listbox = tk.Listbox(popup, width=50, selectmode=tk.MULTIPLE)
+    example_listbox.pack(padx=10, pady=5)
+    for filename in example_doc_text.keys():
+        example_listbox.insert(tk.END, filename)
+    example_button_frame = tk.Frame(popup)
+    example_button_frame.pack(pady=5)
+    tk.Button(
+        example_button_frame, text="Delete Selected", 
+        command=lambda: delete_selected_from_listbox(example_listbox, example_doc_text)
+    ).pack(side=tk.LEFT, padx=5)
+    tk.Button(example_button_frame, text="Clear All", command=clear_examples).pack(side=tk.LEFT, padx=5)
+
+    # Informational Documents
+    tk.Label(popup, text="Informational Documents:").pack(anchor="center", padx=10, pady=5)
+    info_listbox = tk.Listbox(popup, width=50, selectmode=tk.MULTIPLE)
+    info_listbox.pack(padx=10, pady=5)
+    for filename in information_doc_text.keys():
+        info_listbox.insert(tk.END, filename)
+    info_button_frame = tk.Frame(popup)
+    info_button_frame.pack(pady=5)
+    tk.Button(
+        info_button_frame, text="Delete Selected", 
+        command=lambda: delete_selected_from_listbox(info_listbox, information_doc_text)
+    ).pack(side=tk.LEFT, padx=5)
+    tk.Button(info_button_frame, text="Clear All", command=clear_information).pack(side=tk.LEFT, padx=5)
+
+    # Close Button
+    tk.Button(popup, text="Close", command=popup.destroy).pack(pady=10)
 
 def clear_examples():
     """Clear uploaded document data and JSON files."""
     global example_doc_text
-    response = messagebox.askyesno("Wipe Data", "Are you sure you want to remove all documents?")
+    response = messagebox.askyesno("Clear Documents", "Are you sure you want to remove all documents?")
     if response:
         example_doc_text = {}
         if os.path.exists(EXAMPLE_DOCS_FILE):
@@ -105,6 +149,8 @@ def upload_documents(doc_dict, type):
         # Extract and store document text
         doc_dict[filename] = extract_text_from_document(filepath)
         print(f"Document uploaded: {filename}")
+
+    messagebox.showinfo("Success", f"All {type} documents have been uploaded.")
 
 def upload_example_docs():
     """Upload example documents."""
@@ -170,7 +216,7 @@ root = tk.Tk()
 root.title("Document Generator")
 root.geometry("600x600")
 
-# Load stuff
+# Load Persistent Data
 load_example_docs()
 ensure_default_folder_exists()
 settings = load_settings()
@@ -180,36 +226,31 @@ default_download_path = settings.get("download_path", DEFAULT_DOWNLOAD_DIR)
 tk.Label(root, text="Describe the formatting of the document here:").pack(anchor="center", padx=10, pady=5)
 formatting_textbox = tk.Text(root, height=5, width=70)
 formatting_textbox.pack(padx=10, pady=5)
-
-frame_example = tk.Frame(root)
-frame_example.pack(pady=5)
-tk.Button(frame_example, text="Upload Example Documents", command=upload_example_docs).pack(side=tk.LEFT, padx=5)
-tk.Button(frame_example, text="Clear Example Documents", command=clear_examples).pack(side=tk.LEFT, padx=5)
+tk.Button(root, text="Upload Example Documents", command=upload_example_docs).pack(pady=5)
 
 # Information Section
 tk.Label(root, text="Paste any information needed for the document here:").pack(anchor="center", padx=10, pady=5)
 information_textbox = tk.Text(root, height=5, width=70)
 information_textbox.pack(padx=10, pady=5)
-
-frame_info = tk.Frame(root)
-frame_info.pack(pady=5)
-tk.Button(frame_info, text="Upload Information Documents", command=upload_information_docs).pack(side=tk.LEFT, padx=5)
-tk.Button(frame_info, text="Clear Information Documents", command=clear_information).pack(side=tk.LEFT, padx=5)
+tk.Button(root, text="Upload Information Documents", command=upload_information_docs).pack(pady=5)
 
 # Download Path Section
 tk.Label(root, text="Set File Download Location:").pack(anchor="center", padx=10, pady=5)
 download_path_entry = tk.Entry(root, width=50)
 download_path_entry.pack(pady=5)
 download_path_entry.insert(0, default_download_path)
-download_path_entry.config(state="readonly")
 download_path_entry.bind("<Button-1>", set_download_path)
+download_path_entry.config(state="readonly")
 
 # Filename Section
-tk.Label(root, text="Set Filename:").pack(anchor="center", padx=10, pady=5)
+tk.Label(root, text="Set New File Name:").pack(anchor="center", padx=10, pady=5)
 filename_entry = tk.Entry(root, width=50)
 filename_entry.pack(pady=5)
 
 # Generate Button
 tk.Button(root, text="Generate", command=generate_document).pack(pady=20)
+
+# Show Uploaded Files Button
+tk.Button(root, text="Show Uploaded Documents", command=show_uploaded_files).pack(pady=5)
 
 root.mainloop()
