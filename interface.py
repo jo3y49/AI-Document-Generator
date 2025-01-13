@@ -223,16 +223,16 @@ settings = load_settings()
 default_download_path = settings.get("download_path", DEFAULT_DOWNLOAD_DIR)
 
 # Formatting Section
-tk.Label(root, text="Describe the formatting of the document here:").pack(anchor="center", padx=10, pady=5)
+tk.Label(root, text="Describe The formatting of the document and upload examples of the format:").pack(anchor="center", padx=10, pady=5)
 formatting_textbox = tk.Text(root, height=5, width=70)
 formatting_textbox.pack(padx=10, pady=5)
 tk.Button(root, text="Upload Example Documents", command=upload_example_docs).pack(pady=5)
 
 # Information Section
-tk.Label(root, text="Paste any information needed for the document here:").pack(anchor="center", padx=10, pady=5)
+tk.Label(root, text="Paste and upload any information needed for the document here:").pack(anchor="center", padx=10, pady=5)
 information_textbox = tk.Text(root, height=5, width=70)
 information_textbox.pack(padx=10, pady=5)
-tk.Button(root, text="Upload Information Documents", command=upload_information_docs).pack(pady=5)
+tk.Button(root, text="Upload Informational Documents", command=upload_information_docs).pack(pady=5)
 
 # Download Path Section
 tk.Label(root, text="Set File Download Location:").pack(anchor="center", padx=10, pady=5)
