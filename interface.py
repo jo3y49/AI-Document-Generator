@@ -9,17 +9,13 @@ import json
 # File Paths
 DATA_FILE_PATH = os.path.join(os.path.dirname(__file__), "program_data")
 EXAMPLE_DOCS_FILE = os.path.join(DATA_FILE_PATH, "example_docs.json")
+INFORMATION_DOCS_FILE = os.path.join(DATA_FILE_PATH, "information_docs.json")
 SETTINGS_FILE = os.path.join(DATA_FILE_PATH, "settings.json")
 DEFAULT_DOWNLOAD_DIR = os.path.join(DATA_FILE_PATH, "generated_docs")
 
 # Global variable dictionaries to store uploaded document text
-example_doc_text = {}
-information_doc_text = {}
-
-def ensure_default_folder_exists():
-    """Ensure the default folder for generated docs exists."""
-    if not os.path.exists(DEFAULT_DOWNLOAD_DIR):
-        os.makedirs(DEFAULT_DOWNLOAD_DIR)
+example_doc_dict = {}
+information_doc_dict = {}
 
 def load_settings():
     """Load settings from the settings file or set defaults."""
@@ -36,45 +32,68 @@ def save_settings(settings):
     with open(SETTINGS_FILE, "w") as f:
         json.dump(settings, f)
 
+def save_docs():
+    """Save both example and information documents to file."""
+    save_example_docs()
+    save_information_docs()
+
+def load_docs():
+    """Load both example and information documents from file."""
+    load_example_docs()
+    load_information_docs()
+
 def save_example_docs():
     """Save example documents to file."""
-    global example_doc_text
+    global example_doc_dict
     with open(EXAMPLE_DOCS_FILE, "w") as f:
-        json.dump(example_doc_text, f)
+        json.dump(example_doc_dict, f)
 
 def load_example_docs():
     """Load example documents from file."""
     if os.path.exists(EXAMPLE_DOCS_FILE):
-        global example_doc_text
+        global example_doc_dict
         with open(EXAMPLE_DOCS_FILE, "r") as f:
-            example_doc_text = json.load(f)
+            example_doc_dict = json.load(f)
+
+def save_information_docs():
+    """Save information documents to file."""
+    global information_doc_dict
+    with open(INFORMATION_DOCS_FILE, "w") as f:
+        json.dump(information_doc_dict, f)
+
+def load_information_docs():
+    """Load information documents from file."""
+    if os.path.exists(INFORMATION_DOCS_FILE):
+        global information_doc_dict
+        with open(INFORMATION_DOCS_FILE, "r") as f:
+            information_doc_dict = json.load(f)
 
 def show_uploaded_files():
     """Show a popup with the filenames of all uploaded documents."""
-    global example_doc_text, information_doc_text
+    global example_doc_dict, information_doc_dict
     popup = tk.Toplevel(root)
     popup.title("Uploaded Files")
 
     def delete_selected_from_listbox(listbox, doc_dict):
         """Delete the selected file(s) from the provided listbox and dictionary."""
         selected_items = listbox.curselection()
-        for i in reversed(selected_items):  # Reverse to prevent index shifting issues
+        for i in reversed(selected_items): 
             filename = listbox.get(i)
-            del doc_dict[filename]  # Remove from the dictionary
-            listbox.delete(i)      # Remove from the listbox
-        save_example_docs()
+            del doc_dict[filename]
+            listbox.delete(i)
+        save_docs()
 
     # Example Documents
     tk.Label(popup, text="Example Documents:").pack(anchor="center", padx=10, pady=5)
     example_listbox = tk.Listbox(popup, width=50, selectmode=tk.MULTIPLE)
     example_listbox.pack(padx=10, pady=5)
-    for filename in example_doc_text.keys():
+    for filename in example_doc_dict.keys():
         example_listbox.insert(tk.END, filename)
     example_button_frame = tk.Frame(popup)
     example_button_frame.pack(pady=5)
     tk.Button(
         example_button_frame, text="Delete Selected", 
-        command=lambda: delete_selected_from_listbox(example_listbox, example_doc_text)
+        command=lambda: delete_selected_from_listbox(example_listbox, example_doc_dict)
     ).pack(side=tk.LEFT, padx=5)
     tk.Button(example_button_frame, text="Clear All", command=clear_examples).pack(side=tk.LEFT, padx=5)
 
@@ -82,13 +101,13 @@ def show_uploaded_files():
     tk.Label(popup, text="Informational Documents:").pack(anchor="center", padx=10, pady=5)
     info_listbox = tk.Listbox(popup, width=50, selectmode=tk.MULTIPLE)
     info_listbox.pack(padx=10, pady=5)
-    for filename in information_doc_text.keys():
+    for filename in information_doc_dict.keys():
         info_listbox.insert(tk.END, filename)
     info_button_frame = tk.Frame(popup)
     info_button_frame.pack(pady=5)
     tk.Button(
         info_button_frame, text="Delete Selected", 
-        command=lambda: delete_selected_from_listbox(info_listbox, information_doc_text)
+        command=lambda: delete_selected_from_listbox(info_listbox, information_doc_dict)
     ).pack(side=tk.LEFT, padx=5)
     tk.Button(info_button_frame, text="Clear All", command=clear_information).pack(side=tk.LEFT, padx=5)
 
@@ -96,22 +115,24 @@ def show_uploaded_files():
     tk.Button(popup, text="Close", command=popup.destroy).pack(pady=10)
 
 def clear_examples():
-    """Clear uploaded document data and JSON files."""
-    global example_doc_text
+    """Clear uploaded document data."""
+    global example_doc_dict
     response = messagebox.askyesno("Clear Documents", "Are you sure you want to remove all documents?")
     if response:
-        example_doc_text = {}
+        example_doc_dict = {}
         if os.path.exists(EXAMPLE_DOCS_FILE):
             save_example_docs()
-    messagebox.showinfo("Success", "All example documents have been removed.")
+        messagebox.showinfo("Success", "All documents have been removed.")
 
 def clear_information():
     """Clear uploaded information documents."""
-    global information_doc_text
-    response = messagebox.askyesno("Wipe Data", "Are you sure you want to remove all documents?")
+    global information_doc_dict
+    response = messagebox.askyesno("Clear Documents", "Are you sure you want to remove all documents?")
     if response:
-        information_doc_text = {}
-    messagebox.showinfo("Success", "All information documents have been removed.")
+        information_doc_dict = {}
+        if os.path.exists(INFORMATION_DOCS_FILE):
+            save_information_docs()
+        messagebox.showinfo("Success", "All documents have been removed.")
 
 def extract_text_from_document(filepath):
     """Extract text from the document."""
@@ -129,6 +150,7 @@ def extract_text_from_document(filepath):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to extract text from PDF: {e}")
             return ""
+    # add txt later
     else:
         return ""
     
@@ -136,7 +158,7 @@ def upload_documents(doc_dict, type):
     """Upload and store documents in the given dictionary."""
     filepaths = filedialog.askopenfilenames(
         title=f"Upload {type} Documents",
-        filetypes=[("Word and PDF Documents", "*.docx *.pdf")],
+        filetypes=[("Word and PDF Documents", "*.docx *.pdf")], # add txt later
     )
 
     for filepath in filepaths:
@@ -154,14 +176,15 @@ def upload_documents(doc_dict, type):
 
 def upload_example_docs():
     """Upload example documents."""
-    global example_doc_text
-    upload_documents(example_doc_text, "Example")
+    global example_doc_dict
+    upload_documents(example_doc_dict, "Example")
     save_example_docs()
 
 def upload_information_docs():
     """Upload informational documents."""
-    global information_doc_text
-    upload_documents(information_doc_text, "Informational")
+    global information_doc_dict
+    upload_documents(information_doc_dict, "Informational")
+    save_information_docs()
 
 def set_download_path(event):
     folderpath = filedialog.askdirectory(title="Select Download Path")
@@ -186,17 +209,17 @@ def get_data_from_ai(formatting, information):
 
 def generate_document():
     """Generate the final document."""
-    global example_doc_text, information_doc_text
+    global example_doc_dict, information_doc_dict
     formatting = formatting_textbox.get("1.0", tk.END).strip()
     information = information_textbox.get("1.0", tk.END).strip()
     download_path = download_path_entry.get().strip()
     filename = filename_entry.get()
 
     # Append text from uploaded documents
-    for name, text in example_doc_text.items():
+    for name, text in example_doc_dict.items():
         formatting += f"\n\nText from {name}:\n\n{text}"
 
-    for name, text in information_doc_text.items():
+    for name, text in information_doc_dict.items():
         information += f"\n\nText from {name}:\n\n{text}"
 
     if not formatting or not information or not download_path or not filename:
@@ -205,22 +228,22 @@ def generate_document():
     
     # Get the final document from the AI model
     output_doc = get_data_from_ai(formatting, information)
-    output_filepath = f"{download_path}/{filename}.docx"
+    output_filepath = f"{download_path}\{filename}.docx" # add pdf and txt options later
     output_doc.save(output_filepath)
 
     messagebox.showinfo("Success", f"Document generated and saved to {output_filepath}")
     print("Document generation completed.")
 
+if not os.path.exists(DEFAULT_DOWNLOAD_DIR):
+    os.makedirs(DEFAULT_DOWNLOAD_DIR)
+load_docs()
+settings = load_settings()
+default_download_path = settings.get("download_path", DEFAULT_DOWNLOAD_DIR)
+
 # Create the main window
 root = tk.Tk()
 root.title("Document Generator")
 root.geometry("600x600")
-
-# Load Persistent Data
-load_example_docs()
-ensure_default_folder_exists()
-settings = load_settings()
-default_download_path = settings.get("download_path", DEFAULT_DOWNLOAD_DIR)
 
 # Formatting Section
 tk.Label(root, text="Describe The formatting of the document and upload examples of the format:").pack(anchor="center", padx=10, pady=5)
