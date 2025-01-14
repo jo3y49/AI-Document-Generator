@@ -5,6 +5,8 @@ from tkinter import filedialog, messagebox
 from docx import Document
 from PyPDF2 import PdfReader
 import json
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
 
 # File Paths
 DATA_FILE_PATH = os.path.join(os.path.dirname(__file__), "program_data")
@@ -23,7 +25,7 @@ def load_settings():
         with open(SETTINGS_FILE, "r") as f:
             settings = json.load(f)
     else:
-        settings = {"download_path": DEFAULT_DOWNLOAD_DIR}
+        settings = {"download_path": DEFAULT_DOWNLOAD_DIR, "file_type": ".docx"}
         save_settings(settings)
     return settings
 
@@ -150,7 +152,9 @@ def extract_text_from_document(filepath):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to extract text from PDF: {e}")
             return ""
-    # add txt later
+    elif filepath.endswith(".txt"):
+        with open(filepath, "r") as f:
+            return f.read()
     else:
         return ""
     
@@ -158,8 +162,11 @@ def upload_documents(doc_dict, type):
     """Upload and store documents in the given dictionary."""
     filepaths = filedialog.askopenfilenames(
         title=f"Upload {type} Documents",
-        filetypes=[("Word and PDF Documents", "*.docx *.pdf")], # add txt later
+        filetypes=[("Word, PDF, and Text Documents", "*.docx *.pdf *.txt")],
     )
+
+    if not filepaths:
+        return
 
     for filepath in filepaths:
         filename = os.path.basename(filepath)
@@ -201,11 +208,7 @@ def get_data_from_ai(formatting, information):
     final_document_text = f"Formatting:\n{formatting}\n\n"
     final_document_text += f"Information:\n{information}\n\n"
 
-    # Save the merged text to a Word document
-    output_doc = Document()
-    output_doc.add_heading("Sample Ai Document", level=1)
-    output_doc.add_paragraph(final_document_text)
-    return output_doc
+    return "Sample AI Document\n\n" + final_document_text
 
 def generate_document():
     """Generate the final document."""
@@ -225,15 +228,42 @@ def generate_document():
     if not formatting or not information or not download_path or not filename:
         messagebox.showerror("Error", "Please fill in all fields and set a download path and file name.")
         return
-    
-    # Get the final document from the AI model
-    output_doc = get_data_from_ai(formatting, information)
-    output_filepath = f"{download_path}\{filename}.docx" # add pdf and txt options later
-    output_doc.save(output_filepath)
+
+    text_string = get_data_from_ai(formatting, information)
+    output_filepath = f"{download_path}\{filename}{file_type.get()}" # test different file types
+    output_doc = None
+
+    if file_type.get() == ".docx":
+        output_doc = Document()
+        output_doc.add_paragraph(text_string)
+        output_doc.save(output_filepath)
+    elif file_type.get() == ".pdf":
+        try:
+            # Create the PDF canvas
+            c = canvas.Canvas(output_filepath, pagesize=letter)
+            text_object = c.beginText(50, 750)  # Starting position on the page (x, y)
+
+            # Wrap text to fit within the page
+            lines = text_string.splitlines()
+            for line in lines:
+                text_object.textLine(line)
+                if text_object.getY() < 50:
+                    c.drawText(text_object)
+                    c.showPage()
+                    text_object = c.beginText(50, 750)
+
+            # Save the last page
+            c.drawText(text_object)
+            c.save()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to generate PDF: {e}")
+    elif file_type.get() == ".txt":
+        output_doc = open(output_filepath, "w")
+        output_doc.write(text_string)
+        output_doc.close()
 
     messagebox.showinfo("Success", f"Document generated and saved to {output_filepath}")
-    print("Document generation completed.")
-
+    
 if not os.path.exists(DEFAULT_DOWNLOAD_DIR):
     os.makedirs(DEFAULT_DOWNLOAD_DIR)
 load_docs()
@@ -243,7 +273,7 @@ default_download_path = settings.get("download_path", DEFAULT_DOWNLOAD_DIR)
 # Create the main window
 root = tk.Tk()
 root.title("Document Generator")
-root.geometry("600x600")
+root.geometry("600x700")
 
 # Formatting Section
 tk.Label(root, text="Describe The formatting of the document and upload examples of the format:").pack(anchor="center", padx=10, pady=5)
@@ -269,6 +299,19 @@ download_path_entry.config(state="readonly")
 tk.Label(root, text="Set New File Name:").pack(anchor="center", padx=10, pady=5)
 filename_entry = tk.Entry(root, width=50)
 filename_entry.pack(pady=5)
+
+# File Type Section
+tk.Label(root, text="Select File Type:").pack(anchor="center", padx=10, pady=5)
+file_type_options = [".docx", ".pdf", ".txt"]
+file_type = tk.StringVar(value=settings["file_type"])
+
+def update_file_type(*args):
+    settings["file_type"] = file_type.get()
+    save_settings(settings)
+
+file_type.trace("w", update_file_type)
+file_type_dropdown = tk.OptionMenu(root, file_type, *file_type_options)
+file_type_dropdown.pack(pady=5)
 
 # Generate Button
 tk.Button(root, text="Generate", command=generate_document).pack(pady=20)

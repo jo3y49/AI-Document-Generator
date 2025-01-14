@@ -18,3 +18,4 @@
 - tkinter
 - python-docx
 - PyPDF2
+- reportlab
