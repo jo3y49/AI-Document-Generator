@@ -1,38 +1,18 @@
 import os
+import json
 import tkinter as tk
 from tkinter import filedialog, messagebox
-
 from docx import Document
 from PyPDF2 import PdfReader
-import json
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
+from generator import get_data_from_ai
 
-# File Paths
-DATA_FILE_PATH = os.path.join(os.path.dirname(__file__), "program_data")
-EXAMPLE_DOCS_FILE = os.path.join(DATA_FILE_PATH, "example_docs.json")
-INFORMATION_DOCS_FILE = os.path.join(DATA_FILE_PATH, "information_docs.json")
-SETTINGS_FILE = os.path.join(DATA_FILE_PATH, "settings.json")
-DEFAULT_DOWNLOAD_DIR = os.path.join(DATA_FILE_PATH, "generated_docs")
+EXAMPLE_DOCS_FILE = os.path.join(os.path.dirname(__file__), "program_data", "example_docs.json")
+INFORMATION_DOCS_FILE = os.path.join(os.path.dirname(__file__), "program_data", "information_docs.json")
 
-# Global variable dictionaries to store uploaded document text
 example_doc_dict = {}
 information_doc_dict = {}
-
-def load_settings():
-    """Load settings from the settings file or set defaults."""
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as f:
-            settings = json.load(f)
-    else:
-        settings = {"download_path": DEFAULT_DOWNLOAD_DIR, "file_type": ".docx"}
-        save_settings(settings)
-    return settings
-
-def save_settings(settings):
-    """Save settings to the settings file."""
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f)
 
 def save_docs():
     """Save both example and information documents to file."""
@@ -70,7 +50,7 @@ def load_information_docs():
         with open(INFORMATION_DOCS_FILE, "r") as f:
             information_doc_dict = json.load(f)
 
-def show_uploaded_files():
+def show_uploaded_files(root):
     """Show a popup with the filenames of all uploaded documents."""
     global example_doc_dict, information_doc_dict
     popup = tk.Toplevel(root)
@@ -179,7 +159,7 @@ def upload_documents(doc_dict, type):
         doc_dict[filename] = extract_text_from_document(filepath)
         print(f"Document uploaded: {filename}")
 
-    messagebox.showinfo("Success", f"All {type} documents have been uploaded.")
+    messagebox.showinfo("Success", f"{type} documents have been uploaded.")
 
 def upload_example_docs():
     """Upload example documents."""
@@ -193,28 +173,11 @@ def upload_information_docs():
     upload_documents(information_doc_dict, "Informational")
     save_information_docs()
 
-def set_download_path(event):
-    folderpath = filedialog.askdirectory(title="Select Download Path")
-    if folderpath:
-        download_path_entry.config(state="normal")
-        download_path_entry.delete(0, tk.END)
-        download_path_entry.insert(0, folderpath)
-        download_path_entry.config(state="readonly")
-        settings["download_path"] = folderpath
-        save_settings(settings)
-
-def get_data_from_ai(formatting, information):
-    """Placeholder for AI logic.""" 
-    final_document_text = f"Formatting:\n{formatting}\n\n"
-    final_document_text += f"Information:\n{information}\n\n"
-
-    return "Sample AI Document\n\n" + final_document_text
-
-def generate_document():
+def generate_document(formatting_textbox, information_textbox, download_path_entry, filename_entry, file_type):
     """Generate the final document."""
     global example_doc_dict, information_doc_dict
-    formatting = formatting_textbox.get("1.0", tk.END).strip()
-    information = information_textbox.get("1.0", tk.END).strip()
+    formatting = formatting_textbox.get('1.0', tk.END).strip()
+    information = information_textbox.get('1.0', tk.END).strip()
     download_path = download_path_entry.get().strip()
     filename = filename_entry.get()
 
@@ -225,8 +188,17 @@ def generate_document():
     for name, text in information_doc_dict.items():
         information += f"\n\nText from {name}:\n\n{text}"
 
-    if not formatting or not information or not download_path or not filename:
-        messagebox.showerror("Error", "Please fill in all fields and set a download path and file name.")
+    if not formatting:
+        messagebox.showerror("Error", "Please describe the formatting of the document.")
+        return
+    elif not information:
+        messagebox.showerror("Error", "Please provide the information for the document.")
+        return
+    elif not download_path:
+        messagebox.showerror("Error", "Please set a download path.")
+        return
+    elif not filename:
+        messagebox.showerror("Error", "Please set a file name.")
         return
 
     text_string = get_data_from_ai(formatting, information)
@@ -263,60 +235,3 @@ def generate_document():
         output_doc.close()
 
     messagebox.showinfo("Success", f"Document generated and saved to {output_filepath}")
-    
-if not os.path.exists(DEFAULT_DOWNLOAD_DIR):
-    os.makedirs(DEFAULT_DOWNLOAD_DIR)
-load_docs()
-settings = load_settings()
-default_download_path = settings.get("download_path", DEFAULT_DOWNLOAD_DIR)
-
-# Create the main window
-root = tk.Tk()
-root.title("Document Generator")
-root.geometry("600x700")
-
-# Formatting Section
-tk.Label(root, text="Describe The formatting of the document and upload examples of the format:").pack(anchor="center", padx=10, pady=5)
-formatting_textbox = tk.Text(root, height=5, width=70)
-formatting_textbox.pack(padx=10, pady=5)
-tk.Button(root, text="Upload Example Documents", command=upload_example_docs).pack(pady=5)
-
-# Information Section
-tk.Label(root, text="Paste and upload any information needed for the document here:").pack(anchor="center", padx=10, pady=5)
-information_textbox = tk.Text(root, height=5, width=70)
-information_textbox.pack(padx=10, pady=5)
-tk.Button(root, text="Upload Informational Documents", command=upload_information_docs).pack(pady=5)
-
-# Download Path Section
-tk.Label(root, text="Set File Download Location:").pack(anchor="center", padx=10, pady=5)
-download_path_entry = tk.Entry(root, width=50)
-download_path_entry.pack(pady=5)
-download_path_entry.insert(0, default_download_path)
-download_path_entry.bind("<Button-1>", set_download_path)
-download_path_entry.config(state="readonly")
-
-# Filename Section
-tk.Label(root, text="Set New File Name:").pack(anchor="center", padx=10, pady=5)
-filename_entry = tk.Entry(root, width=50)
-filename_entry.pack(pady=5)
-
-# File Type Section
-tk.Label(root, text="Select File Type:").pack(anchor="center", padx=10, pady=5)
-file_type_options = [".docx", ".pdf", ".txt"]
-file_type = tk.StringVar(value=settings["file_type"])
-
-def update_file_type(*args):
-    settings["file_type"] = file_type.get()
-    save_settings(settings)
-
-file_type.trace("w", update_file_type)
-file_type_dropdown = tk.OptionMenu(root, file_type, *file_type_options)
-file_type_dropdown.pack(pady=5)
-
-# Generate Button
-tk.Button(root, text="Generate", command=generate_document).pack(pady=20)
-
-# Show Uploaded Files Button
-tk.Button(root, text="Show Uploaded Documents", command=show_uploaded_files).pack(pady=5)
-
-root.mainloop()
