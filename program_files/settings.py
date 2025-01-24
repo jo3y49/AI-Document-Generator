@@ -2,23 +2,22 @@ import os
 import json
 import tkinter as tk
 from tkinter import filedialog
+from config import SETTINGS_FILE
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "program_data", "settings.json")
-
-def load_settings(download_path):
+def load_settings():
     """Load settings from the settings file or set defaults."""
     if os.path.exists(SETTINGS_FILE):
         with open(SETTINGS_FILE, "r") as f:
             settings = json.load(f)
     else:
-        settings = {"download_path": download_path, "file_type": ".docx"}
+        settings = {"download_path": SETTINGS_FILE, "file_type": ".docx"}
         save_settings(settings)
     return settings
 
 def save_settings(settings):
     """Save settings to the settings file."""
     with open(SETTINGS_FILE, "w") as f:
-        json.dump(settings, f)
+        json.dump(settings, f, indent=1)
 
 def set_download_path(download_path_entry, settings):
     folderpath = filedialog.askdirectory(title="Select Download Path")

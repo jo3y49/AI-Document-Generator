@@ -7,12 +7,20 @@ from PyPDF2 import PdfReader
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from generator import get_data_from_ai
-
-EXAMPLE_DOCS_FILE = os.path.join(os.path.dirname(__file__), "program_data", "example_docs.json")
-INFORMATION_DOCS_FILE = os.path.join(os.path.dirname(__file__), "program_data", "information_docs.json")
+from config import EXAMPLE_DOCS_FILE, INFORMATION_DOCS_FILE
 
 example_doc_dict = {}
 information_doc_dict = {}
+
+def get_example_docs():
+    """Return the example documents dictionary."""
+    global example_doc_dict
+    return example_doc_dict
+
+def get_information_docs():
+    """Return the information documents dictionary."""
+    global information_doc_dict
+    return information_doc_dict
 
 def save_docs():
     """Save both example and information documents to file."""
@@ -50,53 +58,15 @@ def load_information_docs():
         with open(INFORMATION_DOCS_FILE, "r") as f:
             information_doc_dict = json.load(f)
 
-def show_uploaded_files(root):
-    """Show a popup with the filenames of all uploaded documents."""
-    global example_doc_dict, information_doc_dict
-    popup = tk.Toplevel(root)
-    popup.title("Uploaded Files")
+def clear_example(filename):
+    global example_doc_dict
+    if filename in example_doc_dict:
+        del example_doc_dict[filename]
+        save_example_docs()
+        messagebox.showinfo("Success", f"{filename} has been removed.")
+        return example_doc_dict
 
-    def delete_selected_from_listbox(listbox, doc_dict):
-        """Delete the selected file(s) from the provided listbox and dictionary."""
-        selected_items = listbox.curselection()
-        for i in reversed(selected_items): 
-            filename = listbox.get(i)
-            del doc_dict[filename]
-            listbox.delete(i)
-        save_docs()
-
-    # Example Documents
-    tk.Label(popup, text="Example Documents:").pack(anchor="center", padx=10, pady=5)
-    example_listbox = tk.Listbox(popup, width=50, selectmode=tk.MULTIPLE)
-    example_listbox.pack(padx=10, pady=5)
-    for filename in example_doc_dict.keys():
-        example_listbox.insert(tk.END, filename)
-    example_button_frame = tk.Frame(popup)
-    example_button_frame.pack(pady=5)
-    tk.Button(
-        example_button_frame, text="Delete Selected", 
-        command=lambda: delete_selected_from_listbox(example_listbox, example_doc_dict)
-    ).pack(side=tk.LEFT, padx=5)
-    tk.Button(example_button_frame, text="Clear All", command=clear_examples).pack(side=tk.LEFT, padx=5)
-
-    # Informational Documents
-    tk.Label(popup, text="Informational Documents:").pack(anchor="center", padx=10, pady=5)
-    info_listbox = tk.Listbox(popup, width=50, selectmode=tk.MULTIPLE)
-    info_listbox.pack(padx=10, pady=5)
-    for filename in information_doc_dict.keys():
-        info_listbox.insert(tk.END, filename)
-    info_button_frame = tk.Frame(popup)
-    info_button_frame.pack(pady=5)
-    tk.Button(
-        info_button_frame, text="Delete Selected", 
-        command=lambda: delete_selected_from_listbox(info_listbox, information_doc_dict)
-    ).pack(side=tk.LEFT, padx=5)
-    tk.Button(info_button_frame, text="Clear All", command=clear_information).pack(side=tk.LEFT, padx=5)
-
-    # Close Button
-    tk.Button(popup, text="Close", command=popup.destroy).pack(pady=10)
-
-def clear_examples():
+def clear_all_examples():
     """Clear uploaded document data."""
     global example_doc_dict
     response = messagebox.askyesno("Clear Documents", "Are you sure you want to remove all documents?")
@@ -105,8 +75,17 @@ def clear_examples():
         if os.path.exists(EXAMPLE_DOCS_FILE):
             save_example_docs()
         messagebox.showinfo("Success", "All documents have been removed.")
+        return example_doc_dict
 
-def clear_information():
+def clear_information(filename):
+    global information_doc_dict
+    if filename in information_doc_dict:
+        del information_doc_dict[filename]
+        save_information_docs()
+        messagebox.showinfo("Success", f"{filename} has been removed.")
+        return information_doc_dict
+
+def clear_all_information():
     """Clear uploaded information documents."""
     global information_doc_dict
     response = messagebox.askyesno("Clear Documents", "Are you sure you want to remove all documents?")
@@ -115,6 +94,7 @@ def clear_information():
         if os.path.exists(INFORMATION_DOCS_FILE):
             save_information_docs()
         messagebox.showinfo("Success", "All documents have been removed.")
+        return information_doc_dict
 
 def extract_text_from_document(filepath):
     """Extract text from the document."""
