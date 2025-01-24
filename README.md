@@ -1,10 +1,5 @@
 # AI Document Generator
 
-## Current Features:
-
-- Upload and remove pdf and word documents
-- Generate a document containing all text from both the user's typed text, and their uploaded documents. Serves as a placeholder for the AI generated documents for now
-
 ## Future Features:
 
 - Add profiles that each hold their own uploaded documents

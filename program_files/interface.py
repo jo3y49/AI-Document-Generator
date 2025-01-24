@@ -127,6 +127,10 @@ def create_ui(root, settings):
         # Close Button
         tk.Button(popup, text="Close", command=popup.destroy).pack(pady=10)
 
+        popup.transient(root)  # Set the popup as a transient window for the root
+        popup.grab_set()  # Disable interaction with the root window
+        root.wait_window(popup)  # Wait until the popup is closed before continuing
+
     # Show Uploaded Files Button
     tk.Button(root, text="Show Uploaded Documents", command=lambda: show_uploaded_files(root=root)).pack(pady=5)
 
