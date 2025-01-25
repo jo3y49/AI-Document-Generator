@@ -14,3 +14,4 @@
 - python-docx
 - PyPDF2
 - reportlab
+- gpt4all

@@ -1,6 +1,7 @@
 import os
 
 # File Paths
+MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
 DATA_FILE_PATH = os.path.join(os.path.dirname(__file__), "program_data")
 SETTINGS_FILE = os.path.join(DATA_FILE_PATH, "settings.json")
 EXAMPLE_DOCS_FILE = os.path.join(DATA_FILE_PATH, "example_docs.json")

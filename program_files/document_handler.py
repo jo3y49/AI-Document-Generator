@@ -200,8 +200,14 @@ def generate_document(formatting_textbox, information_textbox, download_path_ent
         messagebox.showerror("Error", "Please set a file name.")
         return
 
-    text_string = get_data_from_ai(formatting_description, formatting_examples, information)
-    output_filepath = f"{download_path}\{filename}{file_type.get()}" # test different file types
+    try:
+        # Generate the document text using AI
+        text_string = get_data_from_ai(formatting_description, formatting_examples, information)
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to generate document: {e}")
+        return
+    
+    output_filepath = f"{download_path}\{filename}{file_type.get()}"
     output_doc = None
 
     if file_type.get() == ".docx":
