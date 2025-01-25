@@ -156,19 +156,38 @@ def upload_information_docs():
 def generate_document(formatting_textbox, information_textbox, download_path_entry, filename_entry, file_type):
     """Generate the final document."""
     global example_doc_dict, information_doc_dict
-    formatting = formatting_textbox.get('1.0', tk.END).strip()
+
+    formatting_description = formatting_textbox.get('1.0', tk.END).strip()
+    formatting_examples = ""
     information = information_textbox.get('1.0', tk.END).strip()
     download_path = download_path_entry.get().strip()
     filename = filename_entry.get()
 
+    # add textbox text to the saved data
+    if formatting_description:
+        example_doc_dict['textbox'] = formatting_description
+    else:
+        example_doc_dict['textbox'] = ""
+
+    if information:
+        information_doc_dict['textbox'] = information
+    else:
+        information_doc_dict['textbox'] = ""
+
+    save_docs()
+
     # Append text from uploaded documents
     for name, text in example_doc_dict.items():
-        formatting += f"\n\nText from {name}:\n\n{text}"
+        if name == "textbox":
+            continue
+        formatting_examples += f"\n\nText from {name}:\n\n{text}"
 
     for name, text in information_doc_dict.items():
+        if name == "textbox":
+            continue
         information += f"\n\nText from {name}:\n\n{text}"
 
-    if not formatting:
+    if not formatting_examples and formatting_description == "":
         messagebox.showerror("Error", "Please describe the formatting of the document.")
         return
     elif not information:
@@ -181,7 +200,7 @@ def generate_document(formatting_textbox, information_textbox, download_path_ent
         messagebox.showerror("Error", "Please set a file name.")
         return
 
-    text_string = get_data_from_ai(formatting, information)
+    text_string = get_data_from_ai(formatting_description, formatting_examples, information)
     output_filepath = f"{download_path}\{filename}{file_type.get()}" # test different file types
     output_doc = None
 
