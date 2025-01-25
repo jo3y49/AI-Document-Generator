@@ -8,15 +8,30 @@ from document_handler import (
     clear_information,
     clear_all_information,
     get_example_docs,
-    get_information_docs,
-    save_docs
+    get_information_docs
 )
 from settings import set_download_path, save_settings
 
-def create_ui(root, settings):
+def create_ui(settings):
+    """Create the main UI for the document generator application."""
+    root = tk.Tk()
+
     # Create the main window
     root.title("Document Generator")
-    root.geometry("600x700")
+
+    # Get screen dimensions
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # Set window size to 60% of screen width and 80% of screen height
+    window_width = int(screen_width * 0.6)
+    window_height = int(screen_height * 0.8)
+
+    # Center the window on the screen
+    position_x = (screen_width - window_width) // 2
+    position_y = (screen_height - window_height) // 2
+
+    root.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
     # Formatting Section
     tk.Label(root, text="Describe The formatting of the document and upload examples of the format:").pack(anchor="center", padx=10, pady=5)
@@ -67,6 +82,27 @@ def create_ui(root, settings):
         information_doc_dict = get_information_docs()
         popup = tk.Toplevel(root)
         popup.title("Uploaded Files")
+
+        # Get dimensions of the root window
+        root.update_idletasks()
+        root_x = root.winfo_x()
+        root_y = root.winfo_y()
+        root_width = root.winfo_width()
+        root_height = root.winfo_height()
+
+        # Scale popup size based on main window dimensions (e.g., 70% of width, 60% of height)
+        popup_width = int(root_width * 0.7)
+        popup_height = int(root_height * 0.6)
+
+        # Ensure minimum size for usability
+        popup_width = max(popup_width, 500)
+        popup_height = max(popup_height, 400)
+
+        # Calculate center position relative to the root window
+        position_x = root_x + (root_width // 2) - (popup_width // 2)
+        position_y = root_y + (root_height // 2) - (popup_height // 2)
+
+        popup.geometry(f"{popup_width}x{popup_height}+{position_x}+{position_y}")
 
         def delete_selected_from_listbox(listbox, doc_dict):
             if doc_dict is example_doc_dict:
