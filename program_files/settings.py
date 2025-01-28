@@ -2,7 +2,7 @@ import os
 import json
 import tkinter as tk
 from tkinter import filedialog
-from config import SETTINGS_FILE
+from config import SETTINGS_FILE, DEFAULT_DOWNLOAD_DIR
 
 def load_settings():
     """Load settings from the settings file or set defaults."""
@@ -10,7 +10,7 @@ def load_settings():
         with open(SETTINGS_FILE, "r") as f:
             settings = json.load(f)
     else:
-        settings = {"download_path": SETTINGS_FILE, "file_type": ".docx"}
+        settings = {"download_path": DEFAULT_DOWNLOAD_DIR, "file_type": ".docx"}
         save_settings(settings)
     return settings
 
