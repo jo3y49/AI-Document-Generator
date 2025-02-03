@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from docx import Document
@@ -153,7 +154,7 @@ def upload_information_docs():
     upload_documents(information_doc_dict, "Informational")
     save_information_docs()
 
-def generate_document(formatting_textbox, information_textbox, download_path_entry, filename_entry, file_type):
+def generate_document(formatting_textbox, information_textbox, download_path_entry, filename_entry, file_type, root):
     """Generate the final document."""
     global example_doc_dict, information_doc_dict
 
@@ -199,44 +200,86 @@ def generate_document(formatting_textbox, information_textbox, download_path_ent
     elif not filename:
         messagebox.showerror("Error", "Please set a file name.")
         return
-
-    try:
-        # Generate the document text using AI
-        text_string = get_data_from_ai(formatting_description, formatting_examples, information)
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to generate document: {e}")
-        return
     
-    output_filepath = f"{download_path}\{filename}{file_type.get()}"
-    output_doc = None
-
-    if file_type.get() == ".docx":
-        output_doc = Document()
-        output_doc.add_paragraph(text_string)
-        output_doc.save(output_filepath)
-    elif file_type.get() == ".pdf":
+    loading = loading_popup(root)
+    
+    def generate():
         try:
-            # Create the PDF canvas
-            c = canvas.Canvas(output_filepath, pagesize=letter)
-            text_object = c.beginText(50, 750)  # Starting position on the page (x, y)
-
-            # Wrap text to fit within the page
-            lines = text_string.splitlines()
-            for line in lines:
-                text_object.textLine(line)
-                if text_object.getY() < 50:
-                    c.drawText(text_object)
-                    c.showPage()
-                    text_object = c.beginText(50, 750)
-
-            # Save the last page
-            c.drawText(text_object)
-            c.save()
+            # Generate the document text using AI
+            text_string = get_data_from_ai(formatting_description, formatting_examples, information)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to generate PDF: {e}")
-    elif file_type.get() == ".txt":
-        output_doc = open(output_filepath, "w")
-        output_doc.write(text_string)
-        output_doc.close()
+            messagebox.showerror("Error", f"Failed to generate document: {e}")
+            return
+        output_filepath = f"{download_path}\{filename}{file_type.get()}"
+        output_doc = None
 
-    messagebox.showinfo("Success", f"Document generated and saved to {output_filepath}")
+        if file_type.get() == ".docx":
+            output_doc = Document()
+            output_doc.add_paragraph(text_string)
+            output_doc.save(output_filepath)
+        elif file_type.get() == ".pdf":
+            try:
+                # Create the PDF canvas
+                c = canvas.Canvas(output_filepath, pagesize=letter)
+                text_object = c.beginText(50, 750)  # Starting position on the page (x, y)
+
+                # Wrap text to fit within the page
+                lines = text_string.splitlines()
+                for line in lines:
+                    text_object.textLine(line)
+                    if text_object.getY() < 50:
+                        c.drawText(text_object)
+                        c.showPage()
+                        text_object = c.beginText(50, 750)
+
+                # Save the last page
+                c.drawText(text_object)
+                c.save()
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to generate PDF: {e}")
+        elif file_type.get() == ".txt":
+            output_doc = open(output_filepath, "w")
+            output_doc.write(text_string)
+            output_doc.close()
+            
+        loading.destroy()
+        messagebox.showinfo("Success", f"Document generated and saved to {download_path}")
+            
+    # Run generation in a separate thread
+    threading.Thread(target=generate, daemon=True).start()
+            
+def loading_popup(root):
+    """Show a loading popup while the document is being created."""
+    loading_popup = tk.Toplevel(root)
+    loading_popup.title("Generating Document...")
+    loading_popup.geometry("300x100")  # Set appropriate size
+    loading_popup.resizable(False, False)
+    
+    # Get dimensions of the root window
+    root.update_idletasks()
+    root_x = root.winfo_x()
+    root_y = root.winfo_y()
+    root_width = root.winfo_width()
+    root_height = root.winfo_height()
+
+    # Scale popup size based on main window dimensions (e.g., 70% of width, 60% of height)
+    popup_width = int(root_width * 0.3)
+    popup_height = int(root_height * 0.3)
+
+    # Ensure minimum size for usability
+    popup_width = max(popup_width, 500)
+    popup_height = max(popup_height, 400)
+
+    # Calculate center position relative to the root window
+    position_x = root_x + (root_width // 2) - (popup_width // 2)
+    position_y = root_y + (root_height // 2) - (popup_height // 2)
+
+    loading_popup.geometry(f"{popup_width}x{popup_height}+{position_x}+{position_y}")
+
+    tk.Label(loading_popup, text="Generating document, please wait...", font=("Arial", 12)).pack(pady=20)
+    
+    # Disable interactions with main window
+    loading_popup.transient(root)
+    loading_popup.grab_set()
+    
+    return loading_popup

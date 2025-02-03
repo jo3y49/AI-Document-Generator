@@ -22,7 +22,7 @@ def get_data_from_ai(formatting_description, formatting_examples, information):
 
     with model.chat_session():
         response = model.generate(prompt)
-        response = model.generate("Strip out filler text and return the rest:\n\n" + response)
+        response = model.generate("Strip out filler text and return the rest, do not create your own filler text:\n\n" + response)
     print(response)
 
     return response

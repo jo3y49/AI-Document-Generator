@@ -12,9 +12,11 @@ from document_handler import (
 )
 from settings import set_download_path, save_settings
 
+root = tk.Tk()
+
 def create_ui(settings):
     """Create the main UI for the document generator application."""
-    root = tk.Tk()
+    global root
 
     # Create the main window
     root.title("Document Generator")
@@ -78,7 +80,7 @@ def create_ui(settings):
     # Generate Button
     tk.Button(root, text="Generate", command=lambda: 
         generate_document(formatting_textbox=formatting_textbox, information_textbox=information_textbox, 
-        download_path_entry=download_path_entry, filename_entry=filename_entry, file_type=file_type)).pack(pady=20)
+        download_path_entry=download_path_entry, filename_entry=filename_entry, file_type=file_type, root=root)).pack(pady=20)
 
     def show_uploaded_files(root):
         """Show a popup with the filenames of all uploaded documents."""
